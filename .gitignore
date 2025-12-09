@@ -1,0 +1,38 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Python cache/metadata
+__pycache__/
+*.py[cod]
+*.so
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.cache/
+
+# Environments
+.venv/
+venv*/
+env*/
+.moirai311/
+venvtimesfm/
+.python-version
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and large local artifacts
+data/
+outputs/
+preprocessing/asd_btc_since2013.csv
+preprocessing/asd_btc_hourly_since2013.csv
+
+# Coverage / reports
+.coverage
+htmlcov/
+coverage.xml
+
+# Logs
+*.log

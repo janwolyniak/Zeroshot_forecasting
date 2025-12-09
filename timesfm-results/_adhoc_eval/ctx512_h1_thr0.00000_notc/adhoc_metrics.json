@@ -1,0 +1,25 @@
+{
+  "ctx": 512,
+  "h": 1,
+  "threshold": 0.0,
+  "use_tc": false,
+  "starting_capital": 100000.0,
+  "fee_rate": 0.001,
+  "step1": {
+    "final_equity_no_tc": 433770.2588453007,
+    "final_equity_tc": 113.8660567998531,
+    "total_fees_paid": 154976.00410472785,
+    "arc": 4.040549963138443,
+    "asd": 0.681095554543789,
+    "mdd": 0.27891600794494564,
+    "ir_star": 5.9324274489574105,
+    "ir_starstar": 85.94081668821882,
+    "pct_long": 0.49559859154929575,
+    "pct_short": 0.5044014084507042,
+    "pct_flat": 0.0,
+    "trades_long": 2060.0,
+    "trades_short": 2059.0,
+    "trades_flat": 0.0,
+    "trades_total": 4119.0
+  }
+}
