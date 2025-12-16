@@ -23,6 +23,9 @@ venvtimesfm/
 # Jupyter
 .ipynb_checkpoints/
 
+# Plotting / cache
+.matplotlib_cache/
+
 # Data and large local artifacts
 data/
 outputs/

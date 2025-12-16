@@ -20,7 +20,7 @@ CONTEXT_LEN = 128
 
 # Parameter grid
 HORIZONS = [1, 3, 5, 20]
-NORMALIZE_SETTINGS = [True, False]
+NORMALIZE_INPUTS = True
 
 # Trading / evaluation parameters
 STARTING_CAPITAL = 100_000.0
@@ -71,7 +71,7 @@ def sweep(params: argparse.Namespace) -> pd.DataFrame:
     print("[sweep] results_root =", params.results_root)
     print("[sweep] context_len  =", CONTEXT_LEN)
     print("[sweep] horizons     =", HORIZONS)
-    print("[sweep] normalize    =", NORMALIZE_SETTINGS)
+    print("[sweep] normalize    =", NORMALIZE_INPUTS)
     print("[sweep] eval params  =", dict(starting_capital=STARTING_CAPITAL, threshold=THRESHOLD, fee_rate=FEE_RATE))
 
     # Early path checks
@@ -81,12 +81,12 @@ def sweep(params: argparse.Namespace) -> pd.DataFrame:
     os.makedirs(params.results_root, exist_ok=True)
 
     rows: List[Dict[str, Any]] = []
-    combos = [(h, n) for h in HORIZONS for n in NORMALIZE_SETTINGS]
+    combos = list(HORIZONS)
     if DRY_RUN_LIMIT is not None:
         combos = combos[:DRY_RUN_LIMIT]
 
-    for idx, (horizon, norm_flag) in enumerate(combos, 1):
-        run_name = f"ctx{CONTEXT_LEN}_h{horizon}_norm{str(norm_flag)}"
+    for idx, horizon in enumerate(combos, 1):
+        run_name = f"ctx{CONTEXT_LEN}_h{horizon}_norm{str(NORMALIZE_INPUTS)}"
         out_dir = os.path.join(params.results_root, run_name)
         os.makedirs(out_dir, exist_ok=True)
 
@@ -98,7 +98,7 @@ def sweep(params: argparse.Namespace) -> pd.DataFrame:
                 output_dir=out_dir,
                 context_length=CONTEXT_LEN,
                 horizon=horizon,
-                normalize_inputs=norm_flag,
+                normalize_inputs=NORMALIZE_INPUTS,
                 starting_capital=STARTING_CAPITAL,
                 threshold=THRESHOLD,
                 fee_rate=FEE_RATE,
