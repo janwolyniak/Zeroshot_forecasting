@@ -20,7 +20,7 @@ from chronos_runner import run_single_experiment  # local import from models/
 # constants
 CONTEXT_LEN = 512
 HORIZONS = [1, 3, 5, 20]
-NUM_SAMPLES = [5, 10]
+NUM_SAMPLES = [5, 10, 20]
 
 # Trading / evaluation parameters
 STARTING_CAPITAL = 100_000.0

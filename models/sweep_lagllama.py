@@ -22,7 +22,7 @@ CONTEXT_LEN = 512  # fixed
 
 # Parameter grid
 HORIZONS = [1, 3, 5, 20]
-NUM_SAMPLES = [400]
+NUM_SAMPLES = [5, 10, 20]
 ROPE_SCALES = [1.5]
 
 # Trading / evaluation parameters
