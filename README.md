@@ -1,30 +1,54 @@
 # Zeroshot_forecasting
 
-Directional trading experiments on BTC price data using TimesFM and several baselines (TTM, TOTEM, MOMENT, Moirai, Lag-Llama). Forecasts are converted to long/short/flat signals and evaluated with a consistent backtest/metrics toolset.
+Directional trading experiments on BTC price data using zero-shot forecasters
+(TimesFM, Chronos/Chronos2, Lag-Llama, Moirai, TTM, MOMENT). Forecasts are
+converted to long/short/flat signals and evaluated with a shared backtest and
+metrics toolset.
 
 ## Repo Layout
-- `models/` – notebooks and scripts to generate forecasts for each model family (TimesFM, TTM, TOTEM, MOMENT, Moirai, Lag-Llama).
-- `utils/` – shared helpers for metrics, plotting, validation, and ad-hoc evaluation (`adhoc_eval.py`, `metrics.py`, etc.).
-- `timesfm-results/` – saved TimesFM runs (per-context/horizon folders) plus summary CSVs; `_adhoc_eval/` holds custom threshold experiments.
-- `data/`, `preprocessing/`, `outputs/` – local data, prep steps, and generated artifacts (not all checked in).
-- `TODO_5.md` – current research plan and milestone checklist.
+- `models/` – runners and sweep scripts for each model family plus notebooks
+  (`timesfm_runner.py`, `chronos_runner.py`, `chronos2_runner.py`,
+  `lagllama_runner.py`, `moirai_runner.py`, `ttm_runner.py`, `moment_runner.py`,
+  `sweep_*.py`).
+- `utils/` – shared helpers for metrics, plotting, validation, and ad-hoc
+  evaluation (`adhoc_eval*.py`, `metrics.py`, `plotting.py`).
+- `data/`, `preprocessing/` – BTC datasets and prep notebooks/scripts.
+- `timesfm-results/`, `chronos-results/`, `ttm-results/`, `lagllama-results/`,
+  `moirai-results/` – saved runs and per-run artifacts
+  (`*_step1.csv`, `*_wide.csv`, `metrics.json`, `summary_row.csv`, plots).
+- `models_comparison/` – aggregation scripts, leaderboards, and plots.
+- `external/chronos-forecasting/`, `timesfm/`, `lag-llama/`, `moirai/` – upstream
+  model code used by the runners.
 
-## Latest Work: `_adhoc_eval` (TimesFM Step-1 trades)
-Ad-hoc backtests on TimesFM step-1 predictions with different thresholds (starting capital 100k, fee_rate 0.001, no TC applied to the equity curves below):
-- `timesfm-results/_adhoc_eval/ctx512_h1_thr0.00000_notc` – zero threshold; very frequent trading (~4.1k trades). Final equity (no TC): **433,770**; with TC: **114** due to ~155k fees and near-50/50 long/short time.
-- `timesfm-results/_adhoc_eval/ctx512_h1_thr0.00500_notc` – 0.5% threshold; trades drop to ~2.6k with ~77% flat time. Final equity (no TC): **191,717**; with TC: **10,394**; fees ~125k. Risk metrics: ARC 1.05, ASD 0.46, MDD 0.18, IR* 2.30.
-- `timesfm-results/_adhoc_eval/ctx2048_h1_thr0.00500_notc` – larger context, same threshold. Final equity (no TC): **186,832**; with TC: **9,294**; trades ~2.6k, ~76% flat time; fees ~123k. Risk metrics: ARC 0.99, ASD 0.46, MDD 0.22, IR* 2.15.
-Artifacts per run: `adhoc_metrics.json`, `adhoc_equity.csv`, and `adhoc_equity_notc.png`.
+## Running Experiments
+- Most runner/sweep scripts contain user-specific defaults (absolute paths) near
+  the top; edit those or pass CLI args where available.
+- Example sweeps:
+  ```bash
+  python3 models/sweep_timesfm.py
+  python3 models/sweep_chronos.py
+  python3 models/sweep_chronos2.py
+  python3 models/sweep_ttm.py
+  python3 models/sweep_lagllama.py
+  python3 models/sweep_moirai.py
+  ```
+- Outputs are written to the matching `*-results/` folder with a per-run
+  `summary_row.csv` and a `summary_ctx*.csv` aggregate.
 
-## Running Ad-hoc Evaluation
-1. Ensure the target TimesFM run exists under `timesfm-results/ctx{CTX}_h{H}_norm...` with `timesfm_step1.csv` and `timesfm_wide.csv`.
-2. Set the parameters near the top of `utils/adhoc_eval.py` (`CTX`, `H`, `THRESHOLD`, `USE_TC`).
-3. Run from repo root:
-   ```bash
-   python3 utils/adhoc_eval.py
-   ```
-4. Results are written to `timesfm-results/_adhoc_eval/ctx{CTX}_h{H}_thr{THRESHOLD}_{tc|notc}/`.
+## Ad-hoc Evaluation
+- TimesFM: `python3 utils/adhoc_eval.py`
+- Chronos: `python3 utils/adhoc_eval_chronos.py`
+- Lag-Llama: `python3 utils/adhoc_eval_lagllama.py`
+- TTM: `python3 utils/adhoc_eval_ttm.py`
+
+## Comparing Runs
+Aggregate Chronos/TimesFM/TTM runs into leaderboards and plots:
+```bash
+python3 models_comparison/compare_results.py --metric final_equity_tc --top-k 3
+```
+Outputs include `models_comparison/combined_results.csv`,
+`models_comparison/leaderboard_*.csv`, and plots under `models_comparison/plots/`.
 
 ## Notes
-- Metrics/backtest logic lives in `utils/metrics.py` (handles execution lag, transaction costs, ARC/ASD/MDD/IR calculations).
-- Full TimesFM sweep summaries are in `timesfm-results/summary_ctx*.csv` if you need the broader context/horizon grid.
+- Backtest logic lives in `utils/metrics.py` (execution lag, transaction costs,
+  ARC/ASD/MDD/IR calculations).
