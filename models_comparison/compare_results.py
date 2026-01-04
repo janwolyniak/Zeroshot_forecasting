@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Aggregate and compare trading run summaries from chronos, timesfm, and ttm.
+Aggregate and compare trading run summaries from chronos, timesfm, ttm, lagllama, moirai, and moment.
 
 Outputs consolidated CSVs into models_comparison/ by default:
 - combined_results.csv: all normalized rows with derived metrics
@@ -222,6 +222,84 @@ def load_timesfm(base: Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def load_lagllama(base: Path) -> pd.DataFrame:
+    dfs: List[pd.DataFrame] = []
+    for summary in base.glob("summary_*.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.stem.replace("summary_", ""))
+        df["model_family"] = "lagllama"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    for summary in base.rglob("summary_row.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.parent.name)
+        df["model_family"] = "lagllama"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    meta = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    meta = _derive_metrics(_default_variant(_normalize_types(meta), "summary")) if not meta.empty else meta
+
+    sweeps = _load_metrics_sweeps(base, "lagllama", meta)
+    if meta.empty and sweeps.empty:
+        return pd.DataFrame()
+    frames = [f for f in (meta, sweeps) if not f.empty]
+    return pd.concat(frames, ignore_index=True)
+
+
+def load_moirai(base: Path) -> pd.DataFrame:
+    dfs: List[pd.DataFrame] = []
+    for summary in base.glob("summary_*.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.stem.replace("summary_", ""))
+        df["model_family"] = "moirai"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    for summary in base.rglob("summary_row.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.parent.name)
+        df["model_family"] = "moirai"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    meta = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    meta = _derive_metrics(_default_variant(_normalize_types(meta), "summary")) if not meta.empty else meta
+
+    sweeps = _load_metrics_sweeps(base, "moirai", meta)
+    if meta.empty and sweeps.empty:
+        return pd.DataFrame()
+    frames = [f for f in (meta, sweeps) if not f.empty]
+    return pd.concat(frames, ignore_index=True)
+
+
+def load_moment(base: Path) -> pd.DataFrame:
+    dfs: List[pd.DataFrame] = []
+    for summary in base.glob("summary_*.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.stem.replace("summary_", ""))
+        df["model_family"] = "moment"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    for summary in base.rglob("summary_row.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.parent.name)
+        df["model_family"] = "moment"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    meta = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    meta = _derive_metrics(_default_variant(_normalize_types(meta), "summary")) if not meta.empty else meta
+
+    sweeps = _load_metrics_sweeps(base, "moment", meta)
+    if meta.empty and sweeps.empty:
+        return pd.DataFrame()
+    frames = [f for f in (meta, sweeps) if not f.empty]
+    return pd.concat(frames, ignore_index=True)
+
+
 def combine_runs(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
     frames = [f for f in frames if not f.empty]
     if not frames:
@@ -269,7 +347,14 @@ def write_outputs_for_metric(df: pd.DataFrame, metric: str, top_k: int, output_d
 
 
 def _family_colors() -> dict:
-    return {"chronos": "#1f77b4", "timesfm": "#2ca02c", "ttm": "#ff7f0e"}
+    return {
+        "chronos": "#1f77b4",
+        "timesfm": "#2ca02c",
+        "ttm": "#ff7f0e",
+        "lagllama": "#d62728",
+        "moirai": "#9467bd",
+        "moment": "#8c564b",
+    }
 
 
 def _clean_run_label(run_name: str) -> str:
@@ -369,10 +454,17 @@ def generate_plots(df: pd.DataFrame, metric: str, top_k: int, output_dir: Path) 
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Compare Chronos, TimesFM, and TTM results.")
+    parser = argparse.ArgumentParser(
+        description="Compare Chronos, TimesFM, TTM, Lag-Llama, Moirai, and MOMENT results."
+    )
     parser.add_argument("--chronos-dir", type=Path, default=Path("chronos-results"), help="Path to chronos results.")
     parser.add_argument("--timesfm-dir", type=Path, default=Path("timesfm-results"), help="Path to timesfm results.")
     parser.add_argument("--ttm-dir", type=Path, default=Path("ttm-results"), help="Path to ttm results.")
+    parser.add_argument(
+        "--lagllama-dir", type=Path, default=Path("lagllama-results"), help="Path to lagllama results."
+    )
+    parser.add_argument("--moirai-dir", type=Path, default=Path("moirai-results"), help="Path to moirai results.")
+    parser.add_argument("--moment-dir", type=Path, default=Path("moment-results"), help="Path to moment results.")
     parser.add_argument("--metric", type=str, default="final_equity_tc", help="Metric used for leaderboards.")
     parser.add_argument(
         "--extra-metrics",
@@ -390,13 +482,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include",
         nargs="+",
-        default=["chronos", "timesfm", "ttm"],
-        help="Which families to include (any of: chronos timesfm ttm).",
+        default=["chronos", "timesfm", "ttm", "lagllama", "moirai", "moment"],
+        help="Which families to include (any of: chronos timesfm ttm lagllama moirai moment).",
     )
     parser.add_argument(
-        "--plots",
+        "--no-plots",
         action="store_true",
-        help="If set, generate plots into <output-dir>/plots using the chosen metric.",
+        help="If set, skip generating plots into <output-dir>/plots.",
     )
     return parser.parse_args()
 
@@ -412,6 +504,12 @@ def main() -> None:
         frames.append(load_ttm(args.ttm_dir))
     if "timesfm" in include and args.timesfm_dir.exists():
         frames.append(load_timesfm(args.timesfm_dir))
+    if "lagllama" in include and args.lagllama_dir.exists():
+        frames.append(load_lagllama(args.lagllama_dir))
+    if "moirai" in include and args.moirai_dir.exists():
+        frames.append(load_moirai(args.moirai_dir))
+    if "moment" in include and args.moment_dir.exists():
+        frames.append(load_moment(args.moment_dir))
 
     combined = combine_runs(frames)
     if combined.empty:
@@ -429,7 +527,7 @@ def main() -> None:
             continue
         seen.add(metric)
         write_outputs_for_metric(combined, metric, args.top_k, args.output_dir)
-        if args.plots:
+        if not args.no_plots:
             generate_plots(combined, metric, args.top_k, args.output_dir)
 
 

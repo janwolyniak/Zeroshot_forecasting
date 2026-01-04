@@ -14,7 +14,7 @@ metrics toolset.
   evaluation (`adhoc_eval*.py`, `metrics.py`, `plotting.py`).
 - `data/`, `preprocessing/` – BTC datasets and prep notebooks/scripts.
 - `timesfm-results/`, `chronos-results/`, `ttm-results/`, `lagllama-results/`,
-  `moirai-results/` – saved runs and per-run artifacts
+  `moirai-results/`, `moment-results/` – saved runs and per-run artifacts
   (`*_step1.csv`, `*_wide.csv`, `metrics.json`, `summary_row.csv`, plots).
 - `models_comparison/` – aggregation scripts, leaderboards, and plots.
 - `external/chronos-forecasting/`, `timesfm/`, `lag-llama/`, `moirai/` – upstream
@@ -42,7 +42,7 @@ metrics toolset.
 - TTM: `python3 utils/adhoc_eval_ttm.py`
 
 ## Comparing Runs
-Aggregate Chronos/TimesFM/TTM runs into leaderboards and plots:
+Aggregate Chronos/TimesFM/TTM/Lag-Llama/Moirai/MOMENT runs into leaderboards and plots:
 ```bash
 python3 models_comparison/compare_results.py --metric final_equity_tc --top-k 3
 ```
