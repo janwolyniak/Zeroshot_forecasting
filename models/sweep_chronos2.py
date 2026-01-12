@@ -29,7 +29,7 @@ FEE_RATE = 0.001
 DEFAULT_BATCH_SIZE = 32
 
 DEFAULT_FEATURE_COLS: Optional[List[str]] = ["open", "high", "low", "volume"]
-DEFAULT_USE_FUTURE_COVARIATES = True
+DEFAULT_USE_FUTURE_COVARIATES = False
 DEFAULT_CROSS_LEARNING = False
 
 USER_DEFAULTS = {
@@ -89,7 +89,8 @@ def resolve_params(cli_args: argparse.Namespace) -> argparse.Namespace:
     merged.feature_cols = _parse_csv_list(cli_args.feature_cols)
     if merged.feature_cols is None:
         merged.feature_cols = DEFAULT_FEATURE_COLS
-    merged.use_future_covariates = bool(cli_args.use_future_covariates)
+    # Future covariates are disallowed: force False regardless of CLI input.
+    merged.use_future_covariates = False
     merged.cross_learning = bool(cli_args.cross_learning)
     return merged
 
@@ -171,4 +172,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

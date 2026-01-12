@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Aggregate and compare trading run summaries from chronos, timesfm, ttm, lagllama, moirai, and moment.
+Aggregate and compare trading run summaries from chronos, chronos2, timesfm, ttm, lagllama, moirai, moment, and toto.
 
 Outputs consolidated CSVs into models_comparison/ by default:
 - combined_results.csv: all normalized rows with derived metrics
@@ -176,6 +176,34 @@ def load_chronos(base: Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def load_chronos2(base: Path) -> pd.DataFrame:
+    dfs: List[pd.DataFrame] = []
+    for summary in base.glob("summary_*.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "threshold", 0.005)
+        _ensure_column(df, "run_name", summary.stem.replace("summary_", ""))
+        df["model_family"] = "chronos2"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    for summary in base.rglob("summary_row.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "threshold", 0.005)
+        _ensure_column(df, "run_name", summary.parent.name)
+        df["model_family"] = "chronos2"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    meta = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    meta = _derive_metrics(_default_variant(_normalize_types(meta), "summary")) if not meta.empty else meta
+
+    sweeps = _load_metrics_sweeps(base, "chronos2", meta, default_threshold=0.005)
+    if meta.empty and sweeps.empty:
+        return pd.DataFrame()
+    frames = [f for f in (meta, sweeps) if not f.empty]
+    return pd.concat(frames, ignore_index=True)
+
+
 def load_ttm(base: Path) -> pd.DataFrame:
     dfs: List[pd.DataFrame] = []
     for summary in base.glob("summary_*.csv"):
@@ -300,6 +328,32 @@ def load_moment(base: Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def load_toto(base: Path) -> pd.DataFrame:
+    dfs: List[pd.DataFrame] = []
+    for summary in base.glob("summary_*.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.stem.replace("summary_", ""))
+        df["model_family"] = "toto"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    for summary in base.rglob("summary_row.csv"):
+        df = _read_csv(summary)
+        _ensure_column(df, "run_name", summary.parent.name)
+        df["model_family"] = "toto"
+        df["source_path"] = str(summary)
+        dfs.append(df)
+
+    meta = pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    meta = _derive_metrics(_default_variant(_normalize_types(meta), "summary")) if not meta.empty else meta
+
+    sweeps = _load_metrics_sweeps(base, "toto", meta)
+    if meta.empty and sweeps.empty:
+        return pd.DataFrame()
+    frames = [f for f in (meta, sweeps) if not f.empty]
+    return pd.concat(frames, ignore_index=True)
+
+
 def combine_runs(frames: Iterable[pd.DataFrame]) -> pd.DataFrame:
     frames = [f for f in frames if not f.empty]
     if not frames:
@@ -349,11 +403,13 @@ def write_outputs_for_metric(df: pd.DataFrame, metric: str, top_k: int, output_d
 def _family_colors() -> dict:
     return {
         "chronos": "#1f77b4",
+        "chronos2": "#17becf",
         "timesfm": "#2ca02c",
         "ttm": "#ff7f0e",
         "lagllama": "#d62728",
         "moirai": "#9467bd",
         "moment": "#8c564b",
+        "toto": "#bcbd22",
     }
 
 
@@ -383,6 +439,205 @@ def _build_label_column(df: pd.DataFrame) -> pd.Series:
     return base + " | " + thresholds
 
 
+def _equity_column_from_sweep(df: pd.DataFrame, threshold: float | None, use_tc: bool) -> str | None:
+    if use_tc:
+        candidates = [col for col in df.columns if col.endswith("_tc") and not col.endswith("_no_tc")]
+    else:
+        candidates = [col for col in df.columns if col.endswith("_no_tc")]
+    if not candidates:
+        return None
+    if threshold is None or pd.isna(threshold):
+        return candidates[0]
+
+    def _parse_threshold(col: str) -> float | None:
+        if "thr" not in col:
+            return None
+        try:
+            return float(col.split("thr", 1)[1].split("_", 1)[0])
+        except ValueError:
+            return None
+
+    for col in candidates:
+        value = _parse_threshold(col)
+        if value is not None and abs(value - float(threshold)) < 1e-6:
+            return col
+    return candidates[0]
+
+
+def _equity_sweep_path(source_path: str) -> Path | None:
+    source = Path(source_path)
+    if source.is_dir():
+        candidate = source / "equity_sweep.csv"
+        if candidate.exists():
+            return candidate
+    if source.is_file() or source.parent.exists():
+        candidate = source.parent / "equity_sweep.csv"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _top_runs_with_equity(
+    df: pd.DataFrame, metric: str, top_n: int | None
+) -> List[pd.Series]:
+    metric_df = df.dropna(subset=[metric]).copy()
+    if metric_df.empty:
+        return []
+    if "source_path" not in metric_df.columns:
+        return []
+    metric_df = metric_df[metric_df["source_path"].astype(str).str.endswith("summary_row.csv")]
+    if metric_df.empty:
+        return []
+    metric_df = metric_df.sort_values(metric, ascending=False)
+
+    selected: List[pd.Series] = []
+    for _, row in metric_df.iterrows():
+        if top_n is not None and len(selected) >= top_n:
+            break
+        sweep_path = _equity_sweep_path(str(row["source_path"]))
+        if sweep_path is None:
+            continue
+        selected.append(row)
+    return selected
+
+
+def _plot_equity_evolution(
+    runs: List[pd.Series],
+    metric: str,
+    output_path: Path,
+    title: str,
+    use_tc: bool,
+) -> None:
+    if not runs:
+        print(f"No equity sweep data found for {metric}; skipping equity evolution plot.")
+        return
+
+    color_cycle = plt.get_cmap("tab20").colors
+    fig, ax = plt.subplots(figsize=(12, 6))
+    buy_hold_plotted = False
+    legend_handles = []
+    legend_labels = []
+
+    for idx, row in enumerate(runs):
+        sweep_path = _equity_sweep_path(str(row["source_path"]))
+        if sweep_path is None:
+            continue
+        sweep_df = _read_csv(sweep_path)
+        eq_col = _equity_column_from_sweep(sweep_df, row.get("threshold"), use_tc=use_tc)
+        if eq_col is None:
+            continue
+
+        x = np.arange(len(sweep_df))
+        y = sweep_df[eq_col]
+        label = _build_label_column(pd.DataFrame([row])).iloc[0]
+        color = color_cycle[idx % len(color_cycle)]
+        line = ax.plot(x, y, label=label, color=color, alpha=0.9, linewidth=1.6)[0]
+        legend_handles.append(line)
+        legend_labels.append(label)
+
+        if not buy_hold_plotted and "y_true" in sweep_df.columns:
+            starting_capital = row.get("starting_capital")
+            if pd.isna(starting_capital):
+                starting_capital = 1.0
+            base = sweep_df["y_true"].iloc[0]
+            if pd.notna(base) and base != 0:
+                buy_hold = starting_capital * sweep_df["y_true"] / base
+                line = ax.plot(x, buy_hold, label="buy & hold", color="black", linewidth=2.0, alpha=0.9)[0]
+                legend_handles.append(line)
+                legend_labels.append("buy & hold")
+                buy_hold_plotted = True
+
+    ax.set_title(title)
+    ax.set_xlabel("step")
+    ax.set_ylabel("equity")
+    ax.legend(legend_handles, legend_labels, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+
+
+def _select_leaderboard_rows(df: pd.DataFrame, metric: str, top_n: int) -> pd.DataFrame:
+    plot_df = df.dropna(subset=[metric]).copy()
+    if plot_df.empty:
+        return plot_df
+    if "variant" in plot_df.columns:
+        group_keys = [k for k in ("model_family", "run_name", "threshold") if k in plot_df.columns]
+        if group_keys:
+            def _pick_variant(group: pd.DataFrame) -> pd.Series:
+                summary = group[group["variant"] == "summary"]
+                if not summary.empty:
+                    return summary.sort_values(metric, ascending=False).iloc[0]
+                return group.sort_values(metric, ascending=False).iloc[0]
+
+            plot_df = plot_df.groupby(group_keys, as_index=False).apply(_pick_variant).reset_index(drop=True)
+    return plot_df.sort_values(metric, ascending=False).head(top_n)
+
+
+def _match_equity_rows(
+    df: pd.DataFrame, leaderboard: pd.DataFrame, metric: str
+) -> List[pd.Series]:
+    if leaderboard.empty:
+        return []
+    if "source_path" not in df.columns:
+        return []
+
+    equity_df = df[df["source_path"].astype(str).str.endswith("summary_row.csv")].copy()
+    selected: List[pd.Series] = []
+    for _, row in leaderboard.iterrows():
+        matches = equity_df
+        for key in ("model_family", "run_name"):
+            if key in leaderboard.columns and key in equity_df.columns:
+                matches = matches[matches[key] == row[key]]
+        if "threshold" in leaderboard.columns and "threshold" in equity_df.columns:
+            threshold = row.get("threshold")
+            if pd.isna(threshold):
+                matches = matches[matches["threshold"].isna()]
+            else:
+                matches = matches[np.isclose(matches["threshold"].astype(float), float(threshold), rtol=0, atol=1e-6)]
+        if matches.empty:
+            base_path = Path(str(row.get("source_path", ""))).parent
+            run_name = str(row.get("run_name", ""))
+            if run_name and base_path.name != run_name:
+                run_dir = base_path / run_name
+            else:
+                run_dir = base_path
+            if _equity_sweep_path(str(run_dir)) is not None:
+                fallback = row.copy()
+                fallback["source_path"] = str(run_dir)
+                selected.append(fallback)
+            continue
+        matches = matches.sort_values(metric, ascending=False)
+        selected.append(matches.iloc[0])
+    return selected
+
+
+def generate_equity_evolution_plots(df: pd.DataFrame, top_n: int | None, output_dir: Path) -> None:
+    plots_dir = output_dir / "plots"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
+    if top_n is None:
+        top_n = 10
+    tc_leaderboard = _select_leaderboard_rows(df, "final_equity_tc", top_n)
+    tc_runs = _match_equity_rows(df, tc_leaderboard, "final_equity_tc")
+    _plot_equity_evolution(
+        tc_runs,
+        metric="final_equity_tc",
+        output_path=plots_dir / "equity_evolution_tc.png",
+        title=f"Equity evolution ({len(tc_runs)} runs by final_equity_tc)",
+        use_tc=True,
+    )
+
+    no_tc_leaderboard = _select_leaderboard_rows(df, "final_equity_no_tc", top_n)
+    no_tc_runs = _match_equity_rows(df, no_tc_leaderboard, "final_equity_no_tc")
+    _plot_equity_evolution(
+        no_tc_runs,
+        metric="final_equity_no_tc",
+        output_path=plots_dir / "equity_evolution_no_tc.png",
+        title=f"Equity evolution ({len(no_tc_runs)} runs by final_equity_no_tc)",
+        use_tc=False,
+    )
+
+
 def generate_plots(df: pd.DataFrame, metric: str, top_k: int, output_dir: Path) -> None:
     if metric not in df.columns:
         print(f"Metric '{metric}' not found; skipping plots.")
@@ -399,7 +654,7 @@ def generate_plots(df: pd.DataFrame, metric: str, top_k: int, output_dir: Path) 
 
     # Leaderboard bar plot (top max(top_k, 10) entries).
     top_n = max(top_k, 10)
-    leaderboard = metric_df.sort_values(metric, ascending=False).head(top_n)
+    leaderboard = _select_leaderboard_rows(metric_df, metric, top_n)
     leaderboard_labels = _build_label_column(leaderboard)
     fig, ax = plt.subplots(figsize=(10, 0.5 * len(leaderboard) + 2))
     ax.barh(
@@ -455,9 +710,10 @@ def generate_plots(df: pd.DataFrame, metric: str, top_k: int, output_dir: Path) 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare Chronos, TimesFM, TTM, Lag-Llama, Moirai, and MOMENT results."
+        description="Compare Chronos, Chronos2, TimesFM, TTM, Lag-Llama, Moirai, MOMENT, and TOTO results."
     )
     parser.add_argument("--chronos-dir", type=Path, default=Path("chronos-results"), help="Path to chronos results.")
+    parser.add_argument("--chronos2-dir", type=Path, default=Path("chronos2-results"), help="Path to chronos2 results.")
     parser.add_argument("--timesfm-dir", type=Path, default=Path("timesfm-results"), help="Path to timesfm results.")
     parser.add_argument("--ttm-dir", type=Path, default=Path("ttm-results"), help="Path to ttm results.")
     parser.add_argument(
@@ -465,6 +721,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--moirai-dir", type=Path, default=Path("moirai-results"), help="Path to moirai results.")
     parser.add_argument("--moment-dir", type=Path, default=Path("moment-results"), help="Path to moment results.")
+    parser.add_argument("--toto-dir", type=Path, default=Path("toto-results"), help="Path to toto results.")
     parser.add_argument("--metric", type=str, default="final_equity_tc", help="Metric used for leaderboards.")
     parser.add_argument(
         "--extra-metrics",
@@ -482,8 +739,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include",
         nargs="+",
-        default=["chronos", "timesfm", "ttm", "lagllama", "moirai", "moment"],
-        help="Which families to include (any of: chronos timesfm ttm lagllama moirai moment).",
+        default=["chronos", "chronos2", "timesfm", "ttm", "lagllama", "moirai", "moment", "toto"],
+        help="Which families to include (any of: chronos chronos2 timesfm ttm lagllama moirai moment toto).",
     )
     parser.add_argument(
         "--no-plots",
@@ -500,6 +757,8 @@ def main() -> None:
     include = {name.lower() for name in args.include}
     if "chronos" in include and args.chronos_dir.exists():
         frames.append(load_chronos(args.chronos_dir))
+    if "chronos2" in include and args.chronos2_dir.exists():
+        frames.append(load_chronos2(args.chronos2_dir))
     if "ttm" in include and args.ttm_dir.exists():
         frames.append(load_ttm(args.ttm_dir))
     if "timesfm" in include and args.timesfm_dir.exists():
@@ -510,6 +769,8 @@ def main() -> None:
         frames.append(load_moirai(args.moirai_dir))
     if "moment" in include and args.moment_dir.exists():
         frames.append(load_moment(args.moment_dir))
+    if "toto" in include and args.toto_dir.exists():
+        frames.append(load_toto(args.toto_dir))
 
     combined = combine_runs(frames)
     if combined.empty:
@@ -529,6 +790,9 @@ def main() -> None:
         write_outputs_for_metric(combined, metric, args.top_k, args.output_dir)
         if not args.no_plots:
             generate_plots(combined, metric, args.top_k, args.output_dir)
+    if not args.no_plots:
+        top_n = max(args.top_k, 10)
+        generate_equity_evolution_plots(combined, top_n=top_n, output_dir=args.output_dir)
 
 
 if __name__ == "__main__":

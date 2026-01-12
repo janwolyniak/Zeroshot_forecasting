@@ -42,7 +42,7 @@ USER_DEFAULTS_RUNNER = {
     "timestamp_col": "timestamp",
     "target_col": "close",
     "feature_cols": ["open", "high", "low", "volume"],
-    "use_future_covariates": True,
+    "use_future_covariates": False,
     "model_path": "amazon/chronos-2",
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "batch_size": 32,
@@ -187,7 +187,7 @@ def load_chronos2_pipeline(model_path: str, device: str):
     pipe = Chronos2Pipeline.from_pretrained(
         model_path,
         device_map="auto" if device == "cuda" else {"": device},
-        torch_dtype=dtype,
+        dtype=dtype,
     )
     return pipe
 
@@ -417,13 +417,16 @@ def run_single_experiment(
     timestamp_col: str,
     target_col: str,
     feature_cols: Optional[List[str]] = None,
-    use_future_covariates: bool = True,
+    use_future_covariates: bool = False,
     model_path: str,
     device: Optional[str] = None,
     batch_size: int = 32,
     cross_learning: bool = False,
 ) -> Dict[str, Any]:
     print(f"[runner2] API run_single_experiment → {output_dir}", flush=True)
+    if use_future_covariates:
+        print("[runner2] WARNING: future covariates are disabled; forcing use_future_covariates=False.", flush=True)
+        use_future_covariates = False
 
     df, ts, vals, covariates, idxs_list = load_data(
         data_csv=data_csv,

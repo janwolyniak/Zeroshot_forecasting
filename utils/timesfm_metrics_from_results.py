@@ -29,7 +29,7 @@ class ModelConfig:
     wide_name: str
     results_root: Path
     thresholds: Tuple[float, ...]
-    cut_timestamp: pd.Timestamp
+    cut_timestamp: pd.Timestamp | None
 
 
 _MODEL_PRESETS: Dict[str, ModelConfig] = {
@@ -39,7 +39,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         wide_name="timesfm_wide.csv",
         results_root=Path("timesfm-results"),
         thresholds=(0.01, 0.015, 0.02, 0.025, 0.03),
-        cut_timestamp=pd.Timestamp("2018-03-27 07:00:00"),
+        cut_timestamp=None,
     ),
     "chronos": ModelConfig(
         model="chronos",
@@ -47,7 +47,15 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         wide_name="chronos_wide.csv",
         results_root=Path("chronos-results"),
         thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
-        cut_timestamp=pd.Timestamp("2018-03-27 07:00:00", tz="UTC"),
+        cut_timestamp=None,
+    ),
+    "chronos2": ModelConfig(
+        model="chronos2",
+        step1_name="chronos2_step1.csv",
+        wide_name="chronos2_wide.csv",
+        results_root=Path("chronos2-results"),
+        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        cut_timestamp=None,
     ),
     "ttm": ModelConfig(
         model="ttm",
@@ -55,7 +63,39 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         wide_name="ttm_wide.csv",
         results_root=Path("ttm-results"),
         thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03),
-        cut_timestamp=pd.Timestamp("2018-03-27 07:00:00", tz="UTC"),
+        cut_timestamp=None,
+    ),
+    "lagllama": ModelConfig(
+        model="lagllama",
+        step1_name="lagllama_step1.csv",
+        wide_name="lagllama_wide.csv",
+        results_root=Path("lagllama-results"),
+        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        cut_timestamp=None,
+    ),
+    "moirai": ModelConfig(
+        model="moirai",
+        step1_name="moirai_step1.csv",
+        wide_name="moirai_wide.csv",
+        results_root=Path("moirai-results"),
+        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        cut_timestamp=None,
+    ),
+    "moment": ModelConfig(
+        model="moment",
+        step1_name="moment_step1.csv",
+        wide_name="moment_wide.csv",
+        results_root=Path("moment-results"),
+        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        cut_timestamp=None,
+    ),
+    "toto": ModelConfig(
+        model="toto",
+        step1_name="toto_step1.csv",
+        wide_name="toto_wide.csv",
+        results_root=Path("toto-results"),
+        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        cut_timestamp=None,
     ),
 }
 
@@ -78,8 +118,10 @@ def _parse_thresholds(raw: Optional[str], defaults: Sequence[float]) -> Tuple[fl
     return tuple(vals)
 
 
-def _aligned_cut(ts: pd.Series, cut: pd.Timestamp) -> pd.Timestamp:
+def _aligned_cut(ts: pd.Series, cut: pd.Timestamp | None) -> pd.Timestamp | None:
     """Align cut tz to the timestamp series to avoid tz comparison errors."""
+    if cut is None:
+        return None
     if getattr(ts.dt, "tz", None) is not None and cut.tzinfo is None:
         try:
             return cut.tz_localize(ts.dt.tz)
@@ -116,10 +158,14 @@ def _load_step1_and_wide(run_dir: Path, cfg: ModelConfig) -> Tuple[pd.DataFrame,
 def _hard_cut(
     df_step1: pd.DataFrame,
     df_wide: pd.DataFrame,
-    cut_timestamp: pd.Timestamp,
+    cut_timestamp: pd.Timestamp | None,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    if cut_timestamp is None:
+        return df_step1, df_wide
     ts = df_step1["timestamp"]
     cut_ts = _aligned_cut(ts, cut_timestamp)
+    if cut_ts is None:
+        return df_step1, df_wide
     mask = ts >= cut_ts
     return df_step1.loc[mask].reset_index(drop=True), df_wide.loc[mask].reset_index(drop=True)
 
@@ -328,7 +374,8 @@ def scan_results_root(cfg: ModelConfig, overwrite: bool = False) -> None:
         print(f"[metrics] No valid run dirs under {results_root}")
         return
     print(f"[metrics] Found {len(run_dirs)} run dirs under {results_root}")
-    print(f"[metrics] Hard cut at timestamp >= {cfg.cut_timestamp}")
+    if cfg.cut_timestamp is not None:
+        print(f"[metrics] Hard cut at timestamp >= {cfg.cut_timestamp}")
     for rd in run_dirs:
         try:
             process_run_dir(rd, cfg, overwrite=overwrite)
@@ -344,9 +391,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Post-hoc metrics + plots for forecast results.")
     p.add_argument(
         "--model",
-        choices=sorted(_MODEL_PRESETS.keys()),
-        default="timesfm",
-        help="Which preset/model to process (default: timesfm).",
+        choices=["all", *sorted(_MODEL_PRESETS.keys())],
+        default="all",
+        help="Which preset/model to process (default: all).",
     )
     p.add_argument(
         "--results_root",
@@ -379,8 +426,19 @@ def _build_cfg(model: str, results_root: Optional[str], thresholds: Optional[str
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     args = _build_arg_parser().parse_args(argv)
+    overwrite = True if args.model == "all" else args.overwrite
+
+    if args.model == "all":
+        for model in sorted(_MODEL_PRESETS.keys()):
+            cfg = _build_cfg(model, args.results_root, args.thresholds)
+            if not cfg.results_root.exists():
+                print(f"[metrics] Skipping {model} (missing {cfg.results_root})")
+                continue
+            run_all(cfg, overwrite=overwrite)
+        return
+
     cfg = _build_cfg(args.model, args.results_root, args.thresholds)
-    run_all(cfg, overwrite=args.overwrite)
+    run_all(cfg, overwrite=overwrite)
 
 
 if __name__ == "__main__":
