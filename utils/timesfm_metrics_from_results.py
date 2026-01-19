@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from metrics import evaluate_forecast  # your existing backtest function
+from thresholds import THRESHOLDS
 
 EQUITY_SWEEP_CSV = "equity_sweep.csv"
 METRICS_SWEEP_CSV = "metrics_sweep.csv"
@@ -38,7 +39,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="timesfm_step1.csv",
         wide_name="timesfm_wide.csv",
         results_root=Path("timesfm-results"),
-        thresholds=(0.01, 0.015, 0.02, 0.025, 0.03),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "chronos": ModelConfig(
@@ -46,7 +47,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="chronos_step1.csv",
         wide_name="chronos_wide.csv",
         results_root=Path("chronos-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "chronos2": ModelConfig(
@@ -54,7 +55,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="chronos2_step1.csv",
         wide_name="chronos2_wide.csv",
         results_root=Path("chronos2-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "ttm": ModelConfig(
@@ -62,7 +63,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="ttm_step1.csv",
         wide_name="ttm_wide.csv",
         results_root=Path("ttm-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "lagllama": ModelConfig(
@@ -70,7 +71,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="lagllama_step1.csv",
         wide_name="lagllama_wide.csv",
         results_root=Path("lagllama-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "moirai": ModelConfig(
@@ -78,7 +79,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="moirai_step1.csv",
         wide_name="moirai_wide.csv",
         results_root=Path("moirai-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "moment": ModelConfig(
@@ -86,7 +87,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="moment_step1.csv",
         wide_name="moment_wide.csv",
         results_root=Path("moment-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
     "toto": ModelConfig(
@@ -94,7 +95,7 @@ _MODEL_PRESETS: Dict[str, ModelConfig] = {
         step1_name="toto_step1.csv",
         wide_name="toto_wide.csv",
         results_root=Path("toto-results"),
-        thresholds=(0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04),
+        thresholds=THRESHOLDS,
         cut_timestamp=None,
     ),
 }

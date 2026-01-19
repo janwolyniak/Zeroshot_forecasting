@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from metrics import evaluate_forecast
+from thresholds import DEFAULT_THRESHOLD
 
 
 # config
@@ -17,7 +18,7 @@ OUT_ROOT = RESULTS_ROOT / "_adhoc_eval"
 
 CTX: int = 512          # context length used in sweep
 H: int = 1              # 1, 3, 5, 20
-THRESHOLD: float = 0.005
+THRESHOLD: float = DEFAULT_THRESHOLD
 USE_TC: bool = False    # False -> equity_no_tc; True -> equity_tc
 
 # Use timezone-aware cutoff to match the UTC timestamps loaded from CSVs

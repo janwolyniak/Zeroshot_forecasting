@@ -33,6 +33,7 @@ if MOIRAI_SRC not in sys.path:
     sys.path.insert(0, MOIRAI_SRC)
 
 from gluonts.dataset.pandas import PandasDataset
+from utils.thresholds import DEFAULT_THRESHOLD
 from utils.metrics import evaluate_forecast
 from uni2ts.model.moirai import MoiraiForecast, MoiraiModule
 from uni2ts.model.moirai2 import Moirai2Forecast, Moirai2Module
@@ -51,7 +52,7 @@ USER_DEFAULTS_RUNNER = {
     "batch_size": 4,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "starting_capital": 100_000.0,
-    "threshold": 0.005,
+    "threshold": DEFAULT_THRESHOLD,
     "fee_rate": 0.001,
     "timestamp_col": "timestamp",
     "target_col": "close",

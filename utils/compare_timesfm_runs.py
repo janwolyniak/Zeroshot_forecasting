@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from thresholds import THRESHOLDS
+
 # ====================== config ======================
 
 RESULTS_ROOT = Path("timesfm-results")
@@ -20,8 +22,6 @@ SENS_DIR     = BASE_OUT / "sensitivity"
 
 for d in (HEATMAPS_DIR, OVERLAYS_DIR, SMALLS_DIR, SENS_DIR):
     d.mkdir(parents=True, exist_ok=True)
-
-THRESHOLDS = (0.01, 0.015, 0.02, 0.025, 0.03)
 
 TOP_K = 6
 GROUP_BY = "h"

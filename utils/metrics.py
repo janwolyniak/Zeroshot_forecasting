@@ -44,6 +44,10 @@ from typing import Tuple, Dict, Union, Optional, Sequence
 import numpy as np
 import pandas as pd
 
+try:
+    from .thresholds import DEFAULT_THRESHOLD
+except ImportError:
+    from thresholds import DEFAULT_THRESHOLD
 ArrayLike = Union[pd.Series, np.ndarray, list, tuple]
 
 # We need seconds/year for ARC annualization when timestamps are real datetimes.
@@ -392,7 +396,7 @@ def evaluate_forecast(
     y_pred: ArrayLike,
     timestamps: Optional[Union[pd.Series, pd.Index, Sequence]] = None,
     starting_capital: float = 100_000.0,
-    threshold: float = 0.01,
+    threshold: float = DEFAULT_THRESHOLD,
     fee_rate: float = 0.001,
 ) -> Dict[str, Union[float, pd.Series]]:
 

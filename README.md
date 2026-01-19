@@ -1,24 +1,26 @@
 # Zeroshot_forecasting
 
 Directional trading experiments on BTC price data using zero-shot forecasters
-(TimesFM, Chronos/Chronos2, Lag-Llama, Moirai, TTM, MOMENT). Forecasts are
-converted to long/short/flat signals and evaluated with a shared backtest and
-metrics toolset.
+ (TimesFM, Chronos/Chronos2, Lag-Llama, Moirai, TTM, MOMENT, TOTO). Forecasts
+ are converted to long/short/flat signals and evaluated with a shared backtest
+ and metrics toolset.
 
 ## Repo Layout
 - `models/` – runners and sweep scripts for each model family plus notebooks
   (`timesfm_runner.py`, `chronos_runner.py`, `chronos2_runner.py`,
   `lagllama_runner.py`, `moirai_runner.py`, `ttm_runner.py`, `moment_runner.py`,
-  `sweep_*.py`).
+  `toto_runner.py`, `sweep_*.py`).
 - `utils/` – shared helpers for metrics, plotting, validation, and ad-hoc
   evaluation (`adhoc_eval*.py`, `metrics.py`, `plotting.py`).
 - `data/`, `preprocessing/` – BTC datasets and prep notebooks/scripts.
-- `timesfm-results/`, `chronos-results/`, `ttm-results/`, `lagllama-results/`,
-  `moirai-results/`, `moment-results/` – saved runs and per-run artifacts
-  (`*_step1.csv`, `*_wide.csv`, `metrics.json`, `summary_row.csv`, plots).
+- `timesfm-results/`, `chronos-results/`, `chronos2-results/`, `ttm-results/`,
+  `lagllama-results/`, `moirai-results/`, `moment-results/`, `toto-results/` –
+  saved runs and per-run artifacts (`*_step1.csv`, `*_wide.csv`, `metrics.json`,
+  `summary_row.csv`, plots).
 - `models_comparison/` – aggregation scripts, leaderboards, and plots.
 - `external/chronos-forecasting/`, `timesfm/`, `lag-llama/`, `moirai/` – upstream
   model code used by the runners.
+- `TOTO/` – upstream Toto model code used by the runner.
 
 ## Running Experiments
 - Most runner/sweep scripts contain user-specific defaults (absolute paths) near
@@ -31,6 +33,8 @@ metrics toolset.
   python3 models/sweep_ttm.py
   python3 models/sweep_lagllama.py
   python3 models/sweep_moirai.py
+  python3 models/sweep_moment.py
+  python3 models/sweep_toto.py
   ```
 - Outputs are written to the matching `*-results/` folder with a per-run
   `summary_row.csv` and a `summary_ctx*.csv` aggregate.
@@ -42,7 +46,7 @@ metrics toolset.
 - TTM: `python3 utils/adhoc_eval_ttm.py`
 
 ## Comparing Runs
-Aggregate Chronos/TimesFM/TTM/Lag-Llama/Moirai/MOMENT runs into leaderboards and plots:
+Aggregate Chronos/Chronos2/TimesFM/TTM/Lag-Llama/Moirai/MOMENT/TOTO runs into leaderboards and plots:
 ```bash
 python3 models_comparison/compare_results.py --metric final_equity_tc --top-k 3
 ```

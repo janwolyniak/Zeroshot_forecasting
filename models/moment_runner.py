@@ -36,6 +36,7 @@ if PROJECT_ROOT not in sys.path:
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from utils.thresholds import DEFAULT_THRESHOLD
 from utils.metrics import evaluate_forecast
 
 faulthandler.enable()
@@ -54,7 +55,7 @@ USER_DEFAULTS_RUNNER = {
     "batch_size": 128,
 
     "starting_capital": 100_000.0,
-    "threshold": 0.005,
+    "threshold": DEFAULT_THRESHOLD,
     "fee_rate": 0.001,
 
     "timestamp_col": "timestamp",

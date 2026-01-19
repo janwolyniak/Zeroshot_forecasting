@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from metrics import evaluate_forecast
+from thresholds import DEFAULT_THRESHOLD
 
 # config
 
@@ -16,7 +17,7 @@ OUT_ROOT = RESULTS_ROOT / "_adhoc_eval"
 
 CTX: int = 512
 H: int = 1              # 1, 3, 5, 20
-THRESHOLD: float = 0.005
+THRESHOLD: float = DEFAULT_THRESHOLD
 USE_TC: bool = False    # False -> equity_no_tc; True -> equity_tc
 
 CUT_TIMESTAMP = pd.Timestamp("2018-03-27 07:00:00")

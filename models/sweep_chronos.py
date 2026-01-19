@@ -15,6 +15,7 @@ if PROJECT_ROOT not in sys.path:
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from utils.thresholds import DEFAULT_THRESHOLD
 from chronos_runner import run_single_experiment  # local import from models/
 
 # constants
@@ -24,7 +25,7 @@ NUM_SAMPLES = [5, 10, 20]
 
 # Trading / evaluation parameters
 STARTING_CAPITAL = 100_000.0
-THRESHOLD = 0.005
+THRESHOLD = DEFAULT_THRESHOLD
 FEE_RATE = 0.001
 DEFAULT_BATCH_SIZE = 4
 
@@ -136,4 +137,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -39,6 +39,7 @@ if SCRIPT_DIR not in sys.path:
 if TOTO_ROOT not in sys.path:
     sys.path.insert(0, TOTO_ROOT)
 
+from utils.thresholds import DEFAULT_THRESHOLD
 from utils.metrics import evaluate_forecast
 from toto.data.util.dataset import MaskedTimeseries
 from toto.inference.forecaster import TotoForecaster
@@ -54,7 +55,7 @@ USER_DEFAULTS_RUNNER = {
     "batch_size": 8,
 
     "starting_capital": 100_000.0,
-    "threshold": 0.005,
+    "threshold": DEFAULT_THRESHOLD,
     "fee_rate": 0.001,
 
     "timestamp_col": "timestamp",

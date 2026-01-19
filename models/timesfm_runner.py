@@ -43,6 +43,7 @@ if PROJECT_ROOT not in sys.path:
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from utils.thresholds import DEFAULT_TIMESFM_THRESHOLD
 from utils.metrics import evaluate_forecast  
 import timesfm
 
@@ -60,7 +61,7 @@ USER_DEFAULTS_RUNNER = {
     "normalize_inputs": True,
 
     "starting_capital": 100_000.0,
-    "threshold": 0.0,
+    "threshold": DEFAULT_TIMESFM_THRESHOLD,
     "fee_rate": 0.0,
 
     "timestamp_col": "timestamp",
