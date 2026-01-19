@@ -12,8 +12,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from metrics import evaluate_forecast  # your existing backtest function
-from thresholds import THRESHOLDS
+try:
+    from utils.metrics import evaluate_forecast  # type: ignore
+except ImportError:
+    from metrics import evaluate_forecast  # type: ignore
+
+try:
+    from utils.thresholds import THRESHOLDS  # type: ignore
+except ImportError:
+    from thresholds import THRESHOLDS  # type: ignore
 
 EQUITY_SWEEP_CSV = "equity_sweep.csv"
 METRICS_SWEEP_CSV = "metrics_sweep.csv"
@@ -423,6 +430,14 @@ def _build_cfg(model: str, results_root: Optional[str], thresholds: Optional[str
     # keep paths relative unless user asked for resolve; caller handles resolve/expanduser
     cfg = replace(cfg, results_root=cfg.results_root.expanduser().resolve())
     return cfg
+
+
+def get_model_config(
+    model: str,
+    results_root: Optional[str] = None,
+    thresholds: Optional[str] = None,
+) -> ModelConfig:
+    return _build_cfg(model, results_root, thresholds)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:

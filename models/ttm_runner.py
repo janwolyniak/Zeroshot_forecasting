@@ -38,6 +38,7 @@ if SCRIPT_DIR not in sys.path:
 
 from utils.thresholds import DEFAULT_THRESHOLD
 from utils.metrics import evaluate_forecast
+from utils.metrics_sweep import write_threshold_sweeps
 from tsfm_public.toolkit.get_model import get_model
 from tsfm_public.toolkit.time_series_forecasting_pipeline import TimeSeriesForecastingPipeline
 from tsfm_public.toolkit.time_series_preprocessor import TimeSeriesPreprocessor
@@ -357,6 +358,12 @@ def save_artifacts(
         pd.DataFrame([summary]).to_csv(os.path.join(output_dir, "summary_row.csv"), index=False)
     except Exception:
         print("[runner] WARNING: summary_row.csv write failed; continuing.", flush=True)
+        traceback.print_exc()
+
+    try:
+        write_threshold_sweeps(output_dir, model="ttm")
+    except Exception:
+        print("[runner] WARNING: metrics_sweep generation failed; continuing.", flush=True)
         traceback.print_exc()
 
     print("[runner] done.", flush=True)

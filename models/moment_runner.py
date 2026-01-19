@@ -38,6 +38,7 @@ if SCRIPT_DIR not in sys.path:
 
 from utils.thresholds import DEFAULT_THRESHOLD
 from utils.metrics import evaluate_forecast
+from utils.metrics_sweep import write_threshold_sweeps
 
 faulthandler.enable()
 
@@ -402,6 +403,12 @@ def save_artifacts(
         pd.DataFrame([summary]).to_csv(os.path.join(output_dir, "summary_row.csv"), index=False)
     except Exception:
         print("[runner] WARNING: summary_row.csv write failed; continuing.", flush=True)
+        traceback.print_exc()
+
+    try:
+        write_threshold_sweeps(output_dir, model="moment")
+    except Exception:
+        print("[runner] WARNING: metrics_sweep generation failed; continuing.", flush=True)
         traceback.print_exc()
 
     print("[runner] done.", flush=True)

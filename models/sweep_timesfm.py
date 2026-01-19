@@ -12,7 +12,7 @@ PROJECT_ROOT = r'/Users/jan/Documents/working papers/project 1'
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from utils.thresholds import DEFAULT_TIMESFM_THRESHOLD
+from utils.thresholds import DEFAULT_THRESHOLD
 from timesfm_runner import run_single_experiment  # local import from models/
 
 # constants
@@ -25,7 +25,7 @@ NORMALIZE_INPUTS = True
 
 # Trading / evaluation parameters
 STARTING_CAPITAL = 100_000.0
-THRESHOLD = DEFAULT_TIMESFM_THRESHOLD
+THRESHOLD = DEFAULT_THRESHOLD
 FEE_RATE = 0.001
 
 

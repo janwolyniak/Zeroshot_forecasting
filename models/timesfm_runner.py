@@ -43,8 +43,9 @@ if PROJECT_ROOT not in sys.path:
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from utils.thresholds import DEFAULT_TIMESFM_THRESHOLD
-from utils.metrics import evaluate_forecast  
+from utils.thresholds import DEFAULT_THRESHOLD
+from utils.metrics import evaluate_forecast
+from utils.metrics_sweep import write_threshold_sweeps
 import timesfm
 
 
@@ -61,7 +62,7 @@ USER_DEFAULTS_RUNNER = {
     "normalize_inputs": True,
 
     "starting_capital": 100_000.0,
-    "threshold": DEFAULT_TIMESFM_THRESHOLD,
+    "threshold": DEFAULT_THRESHOLD,
     "fee_rate": 0.0,
 
     "timestamp_col": "timestamp",
@@ -328,6 +329,12 @@ def save_artifacts(
         pd.DataFrame([summary]).to_csv(os.path.join(output_dir, "summary_row.csv"), index=False)
     except Exception:
         print("[runner] WARNING: summary_row.csv write failed; continuing.", flush=True)
+        traceback.print_exc()
+
+    try:
+        write_threshold_sweeps(output_dir, model="timesfm")
+    except Exception:
+        print("[runner] WARNING: metrics_sweep generation failed; continuing.", flush=True)
         traceback.print_exc()
 
     print("[runner] done.", flush=True)
